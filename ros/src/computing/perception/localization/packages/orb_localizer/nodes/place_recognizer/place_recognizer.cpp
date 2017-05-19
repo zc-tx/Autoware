@@ -14,13 +14,23 @@
 #include <image_transport/image_transport.h>
 #include "System.h"
 #include "Map.h"
+#include "Frame.h"
 
 using namespace std;
 namespace enc = sensor_msgs::image_encodings;
+using ORB_SLAM2::Frame;
+
 
 const string orbGenericVocabFile = ORB_SLAM_VOCABULARY;
 
 ORB_SLAM2::System *SLAMSystem;
+
+
+
+bool relocalize (const Frame &frame)
+{
+
+}
 
 
 void imageCallback (const sensor_msgs::ImageConstPtr &imageMsg)
@@ -64,7 +74,13 @@ void imageCallback (const sensor_msgs::ImageConstPtr &imageMsg)
 	else
 		image = cv_ptr->image;
 
+	// XXX: Refactor conversion process
+	cv::Mat imageGray;
+	cv::cvtColor (image, imageGray, CV_BGR2GRAY);
+
 	const double imageTime = imageMsg->header.stamp.toSec();
+
+	Frame cframe = SLAMSystem->getTracker()->createMonocularFrame(imageGray, imageTime);
 
 }
 
