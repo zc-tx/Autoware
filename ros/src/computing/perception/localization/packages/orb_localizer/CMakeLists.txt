@@ -215,6 +215,18 @@ target_link_libraries (
 )
 
 
+add_executable (
+	place_recognizer
+		nodes/place_recognizer/place_recognizer.cpp
+)
+
+target_link_libraries (
+	place_recognizer
+		${catkin_LIBRARIES}
+		${ORB_BIN_LINKS}
+		${LINK_LIBRARIES}
+)
+
 
 add_executable (
 	imgprocx
