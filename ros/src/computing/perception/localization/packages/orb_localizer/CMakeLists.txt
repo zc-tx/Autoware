@@ -227,6 +227,17 @@ target_link_libraries (
 		${LINK_LIBRARIES}
 )
 
+add_executable (
+	image_testpub
+		nodes/place_recognizer/image_publisher.cpp
+)
+
+target_link_libraries (
+	image_testpub
+		${catkin_LIBRARIES}
+		${OpenCV_LIBS}
+)
+
 
 add_executable (
 	imgprocx
