@@ -27,18 +27,16 @@ using ORB_SLAM2::KeyFrameDatabase;
 using ORB_SLAM2::KeyFrame;
 
 
-const string orbGenericVocabFile = ORB_SLAM_VOCABULARY;
-
-ORB_SLAM2::System *SLAMSystem;
-
-
-
 struct RecognizerOutput {
 	cv::Mat framebuf;
 	geometry_msgs::PoseWithCovariance keyframePose;
 	double imageTimestamp;
 };
 
+
+const string orbGenericVocabFile = ORB_SLAM_VOCABULARY;
+ORB_SLAM2::System *SLAMSystem;
+ros::Publisher recognizerPub;
 
 
 cv::Mat RenderOutput (Frame &frame, KeyFrame *kf)
