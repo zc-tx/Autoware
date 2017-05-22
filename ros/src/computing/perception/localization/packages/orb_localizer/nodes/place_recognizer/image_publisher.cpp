@@ -5,6 +5,12 @@
  *      Author: sujiwo
  */
 
+/*
+ * The purpose of this node is to publish a single image. It is used to test
+ * the performance of place recognizer.
+ */
+
+
 #include <iostream>
 #include <string>
 #include <ros/ros.h>
@@ -27,7 +33,7 @@ int main (int argc, char *argv[])
 	ros::init(argc, argv, "image_testpub");
 	ros::NodeHandle nh;
 	image_transport::ImageTransport it(nh);
-	image_transport::Publisher pub = it.advertise("camera/image", 1);
+	image_transport::Publisher pub = it.advertise("/", 1);
 
 	cv::Mat cImage = cv::imread (argv[1], CV_LOAD_IMAGE_ANYCOLOR);
 	sensor_msgs::ImagePtr msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", cImage).toImageMsg();

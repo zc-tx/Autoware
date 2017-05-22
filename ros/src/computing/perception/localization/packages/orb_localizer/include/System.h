@@ -138,6 +138,7 @@ public:
     LoopClosing* getLoopCloser() { return mpLoopCloser; }
     LocalMapping* getLocalMapper() { return mpLocalMapper; }
     FrameDrawer* getFrameDrawer() { return mpFrameDrawer; }
+    KeyFrameDatabase* getKeyFrameDB() { return mpKeyFrameDatabase; }
 
     const operationMode opMode;
 

@@ -6,19 +6,25 @@
  */
 
 #include <iostream>
+#include <vector>
 #include <string>
 #include <ros/ros.h>
+#include <geometry_msgs/PoseWithCovariance.h>
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/image_encodings.h>
 #include <cv_bridge/cv_bridge.h>
 #include <image_transport/image_transport.h>
+#include <tf/tf.h>
 #include "System.h"
 #include "Map.h"
 #include "Frame.h"
+#include "../common.h"
 
 using namespace std;
 namespace enc = sensor_msgs::image_encodings;
 using ORB_SLAM2::Frame;
+using ORB_SLAM2::KeyFrameDatabase;
+using ORB_SLAM2::KeyFrame;
 
 
 const string orbGenericVocabFile = ORB_SLAM_VOCABULARY;
@@ -27,9 +33,47 @@ ORB_SLAM2::System *SLAMSystem;
 
 
 
-bool relocalize (const Frame &frame)
-{
+struct RecognizerOutput {
+	cv::Mat framebuf;
+	geometry_msgs::PoseWithCovariance keyframePose;
+	double imageTimestamp;
+};
 
+
+
+cv::Mat RenderOutput (Frame &frame, KeyFrame *kf)
+{
+	cv::Mat imgOut;
+
+	return imgOut;
+}
+
+
+bool relocalize (Frame &frame, RecognizerOutput &output)
+{
+	KeyFrameDatabase *kfDB = SLAMSystem->getKeyFrameDB();
+	frame.ComputeBoW();
+
+	vector<KeyFrame*> vpCandidateKFs
+		= kfDB->DetectRelocalizationCandidatesSimple(&frame);
+
+	if (vpCandidateKFs.empty())
+		return false;
+
+	// XXX: Find a way to select candidate
+	KeyFrame *firstSel = vpCandidateKFs[0];
+
+	tf::Transform keyPose = KeyFramePoseToTf(firstSel);
+	output.imageTimestamp = frame.mTimeStamp;
+	output.keyframePose.pose.position.x = keyPose.getOrigin().x();
+	output.keyframePose.pose.position.y = keyPose.getOrigin().y();
+	output.keyframePose.pose.position.z = keyPose.getOrigin().z();
+	output.keyframePose.pose.orientation.x = keyPose.getRotation().x();
+	output.keyframePose.pose.orientation.y = keyPose.getRotation().y();
+	output.keyframePose.pose.orientation.z = keyPose.getRotation().z();
+	output.keyframePose.pose.orientation.w = keyPose.getRotation().w();
+
+	return true;
 }
 
 
@@ -74,7 +118,6 @@ void imageCallback (const sensor_msgs::ImageConstPtr &imageMsg)
 	else
 		image = cv_ptr->image;
 
-	// XXX: Refactor conversion process
 	cv::Mat imageGray;
 	cv::cvtColor (image, imageGray, CV_BGR2GRAY);
 
@@ -82,6 +125,8 @@ void imageCallback (const sensor_msgs::ImageConstPtr &imageMsg)
 
 	Frame cframe = SLAMSystem->getTracker()->createMonocularFrame(imageGray, imageTime);
 
+	RecognizerOutput frameRecognizerOutput;
+	bool kfFound = relocalize(cframe, frameRecognizerOutput);
 }
 
 
