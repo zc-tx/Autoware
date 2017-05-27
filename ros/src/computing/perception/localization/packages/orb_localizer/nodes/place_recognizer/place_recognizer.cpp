@@ -18,13 +18,20 @@
 #include "System.h"
 #include "Map.h"
 #include "Frame.h"
+#include "ORBmatcher.h"
+#include "MapPoint.h"
+#include "PnPsolver.h"
 #include "../common.h"
+
 
 using namespace std;
 namespace enc = sensor_msgs::image_encodings;
 using ORB_SLAM2::Frame;
 using ORB_SLAM2::KeyFrameDatabase;
 using ORB_SLAM2::KeyFrame;
+using ORB_SLAM2::ORBmatcher;
+using ORB_SLAM2::MapPoint;
+using ORB_SLAM2::PnPsolver;
 
 
 struct RecognizerOutput {
@@ -58,18 +65,52 @@ bool relocalize (Frame &frame, RecognizerOutput &output)
 	if (vpCandidateKFs.empty())
 		return false;
 
-	// XXX: Find a way to select candidate
-	KeyFrame *firstSel = vpCandidateKFs[0];
+	vector<bool> vcDiscarded;
+	const int nKFs = vpCandidateKFs.size();
+	vcDiscarded.resize(nKFs);
+	ORBmatcher matcher (0.75, true);
 
-	tf::Transform keyPose = KeyFramePoseToTf(firstSel);
-	output.imageTimestamp = frame.mTimeStamp;
-	output.keyframePose.pose.position.x = keyPose.getOrigin().x();
-	output.keyframePose.pose.position.y = keyPose.getOrigin().y();
-	output.keyframePose.pose.position.z = keyPose.getOrigin().z();
-	output.keyframePose.pose.orientation.x = keyPose.getRotation().x();
-	output.keyframePose.pose.orientation.y = keyPose.getRotation().y();
-	output.keyframePose.pose.orientation.z = keyPose.getRotation().z();
-	output.keyframePose.pose.orientation.w = keyPose.getRotation().w();
+    vector<vector<MapPoint*> > vvpMapPointMatches;
+    vvpMapPointMatches.resize(nKFs);
+
+    vector<PnPsolver*> vpPnPsolvers;
+    vpPnPsolvers.resize(nKFs);
+
+    int nCandidates=0;
+
+    for(int i=0; i<nKFs; i++)
+    {
+        KeyFrame* pKF = vpCandidateKFs[i];
+        if(pKF->isBad())
+        	vcDiscarded[i] = true;
+        else
+        {
+            int nmatches = matcher.SearchByBoW (pKF, frame, vvpMapPointMatches[i]);
+            if(nmatches<15)
+            {
+            	cerr << "KF discarded: #" << pKF->mnId << endl;
+            	vcDiscarded[i] = true;
+                continue;
+            }
+            else
+            {
+                PnPsolver* pSolver = new PnPsolver (frame, vvpMapPointMatches[i]);
+                pSolver->SetRansacParameters(0.99,10,300,4,0.5,5.991);
+                vpPnPsolvers[i] = pSolver;
+                nCandidates++;
+            }
+        }
+    }
+
+//	tf::Transform keyPose = KeyFramePoseToTf(firstSel);
+//	output.imageTimestamp = frame.mTimeStamp;
+//	output.keyframePose.pose.position.x = keyPose.getOrigin().x();
+//	output.keyframePose.pose.position.y = keyPose.getOrigin().y();
+//	output.keyframePose.pose.position.z = keyPose.getOrigin().z();
+//	output.keyframePose.pose.orientation.x = keyPose.getRotation().x();
+//	output.keyframePose.pose.orientation.y = keyPose.getRotation().y();
+//	output.keyframePose.pose.orientation.z = keyPose.getRotation().z();
+//	output.keyframePose.pose.orientation.w = keyPose.getRotation().w();
 
 	return true;
 }
