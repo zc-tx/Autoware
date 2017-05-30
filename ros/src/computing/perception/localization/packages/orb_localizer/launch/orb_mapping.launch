@@ -7,6 +7,7 @@
 	<arg name="image_topic" default="/camera/image_raw" />
 	<arg name="external_pose_topic" default="/current_pose" />
 	<arg name="image_rate" default="10" />
+	<arg name="save_keyframe_images" default="false" />
 
 	<!-- slow down -->
 	<node name="downsample" pkg="topic_tools" type="throttle" args="messages $(arg image_topic) $(arg image_rate) $(arg image_topic)_d" />

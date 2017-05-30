@@ -224,6 +224,9 @@ int main (int argc, char *argv[])
 	string configFile;
 	nodeHandler.getParam("configuration_file", configFile);
 
+	bool doSaveKeyframeImages;
+	nodeHandler.getParam("save_keyframe_images", doSaveKeyframeImages);
+
 	ORB_SLAM2::System SLAM(orbVocabFile,
 		configFile,
 		ORB_SLAM2::System::MONOCULAR,
@@ -243,6 +246,8 @@ int main (int argc, char *argv[])
 
     ros::shutdown();
     SLAM.Shutdown();
+
+    SLAM.getMap()->saveToDisk(mapPath, SLAM.getKeyFrameDB(), doSaveKeyframeImages);
 
     return 0;
 }

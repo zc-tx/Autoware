@@ -21,17 +21,15 @@
 #include "ORBmatcher.h"
 #include "MapPoint.h"
 #include "PnPsolver.h"
+#include "ORBVocabulary.h"
+#include "ORBextractor.h"
 #include "../common.h"
 
 
 using namespace std;
+using namespace ORB_SLAM2;
 namespace enc = sensor_msgs::image_encodings;
-using ORB_SLAM2::Frame;
-using ORB_SLAM2::KeyFrameDatabase;
-using ORB_SLAM2::KeyFrame;
-using ORB_SLAM2::ORBmatcher;
-using ORB_SLAM2::MapPoint;
-using ORB_SLAM2::PnPsolver;
+
 
 
 struct RecognizerOutput {
@@ -42,8 +40,20 @@ struct RecognizerOutput {
 
 
 const string orbGenericVocabFile = ORB_SLAM_VOCABULARY;
-ORB_SLAM2::System *SLAMSystem;
+//ORB_SLAM2::System *SLAMSystem;
 ros::Publisher recognizerPub;
+
+cv::FileStorage sysConfig;
+KeyFrameDatabase *keyframeDB;
+ORBVocabulary *keyVocab;
+ORBextractor *orbExtractor;
+ORB_SLAM2::Map *sourceMap;
+
+// Camera Parameters
+cv::Mat CameraParam;
+
+// Distortion Coefficients
+cv::Mat DistCoef;
 
 
 cv::Mat RenderOutput (Frame &frame, KeyFrame *kf)
@@ -54,13 +64,86 @@ cv::Mat RenderOutput (Frame &frame, KeyFrame *kf)
 }
 
 
+// XXX: No exception handling here
+void SlamSystemPrepare (
+	const string &mapFilename,
+	const string &configPath,
+	cv::FileStorage &sconf,
+	Map **sMap,
+	ORBVocabulary **vocab,
+	KeyFrameDatabase **kfdb,
+	ORBextractor **orbext
+	)
+{
+	// open Configuration file
+	sconf = cv::FileStorage (configPath.c_str(), cv::FileStorage::READ);
+
+	// Vocabulary
+	*vocab = new ORBVocabulary ();
+	cout << endl << "Loading Custom ORB Vocabulary... " ;
+	string mapVoc = mapFilename + ".voc";
+	bool vocload = (*vocab)->loadFromTextFile (mapVoc);
+	cout << "Vocabulary loaded!" << endl << endl;
+
+	// Create KeyFrame Database
+	*kfdb = new KeyFrameDatabase(**vocab);
+
+	// Map
+	*sMap = new Map ();
+	(*sMap)->loadFromDisk(mapFilename, *kfdb, true);
+
+	// ORB Extractor
+	*orbext = new ORBextractor(
+		2 * (int)sconf["ORBextractor.nFeatures"],
+		(float)sconf["ORBextractor.scaleFactor"],
+		(int)sconf["ORBextractor.nLevels"],
+		(int)sconf["ORBextractor.iniThFAST"],
+		(int)sconf["ORBextractor.minThFAST"]);
+
+	// Camera Parameters
+    float fx = sconf["Camera.fx"];
+    float fy = sconf["Camera.fy"];
+    float cx = sconf["Camera.cx"];
+    float cy = sconf["Camera.cy"];
+    cv::Mat K = cv::Mat::eye(3,3,CV_32F);
+    K.at<float>(0,0) = fx;
+    K.at<float>(1,1) = fy;
+    K.at<float>(0,2) = cx;
+    K.at<float>(1,2) = cy;
+    K.copyTo(CameraParam);
+
+    // Distortion Coefficients
+    DistCoef = cv::Mat (4,1,CV_32F);
+    DistCoef.at<float>(0) = sconf["Camera.k1"];
+    DistCoef.at<float>(1) = sconf["Camera.k2"];
+    DistCoef.at<float>(2) = sconf["Camera.p1"];
+    DistCoef.at<float>(3) = sconf["Camera.p2"];
+    const float k3 = sconf["Camera.k3"];
+    if(k3!=0)
+    {
+        DistCoef.resize(5);
+        DistCoef.at<float>(4) = k3;
+    }
+
+}
+
+
+ORB_SLAM2::Frame
+monocularFrame (const cv::Mat& inputGray, const double timestamp)
+{
+	float mbf = 0.0, thDepth = 0.0;
+
+	return ORB_SLAM2::Frame (inputGray, timestamp, orbExtractor, keyVocab, CameraParam, DistCoef, mbf, thDepth);
+}
+
+
 bool relocalize (Frame &frame, RecognizerOutput &output)
 {
-	KeyFrameDatabase *kfDB = SLAMSystem->getKeyFrameDB();
+//	KeyFrameDatabase *kfDB = SLAMSystem->getKeyFrameDB();
 	frame.ComputeBoW();
 
 	vector<KeyFrame*> vpCandidateKFs
-		= kfDB->DetectRelocalizationCandidatesSimple(&frame);
+		= keyframeDB->DetectRelocalizationCandidatesSimple(&frame);
 
 	if (vpCandidateKFs.empty())
 		return false;
@@ -120,49 +203,18 @@ void imageCallback (const sensor_msgs::ImageConstPtr &imageMsg)
 {
 	cout << "Imaged\n";
 
-	// Copy the ros image message to cv::Mat.
-	cv_bridge::CvImageConstPtr cv_ptr;
-	try
-	{
-		cv_ptr = cv_bridge::toCvShare(imageMsg);
-	}
-	catch (cv_bridge::Exception& e)
-	{
-		ROS_ERROR("cv_bridge exception: %s", e.what());
-		return;
-	}
-
-	cv::Mat image;
-	// Check if we need debayering
-	if (enc::isBayer(imageMsg->encoding)) {
-		int code=-1;
-		if (imageMsg->encoding == enc::BAYER_RGGB8 ||
-				imageMsg->encoding == enc::BAYER_RGGB16) {
-			code = cv::COLOR_BayerBG2BGR;
-		}
-		else if (imageMsg->encoding == enc::BAYER_BGGR8 ||
-				imageMsg->encoding == enc::BAYER_BGGR16) {
-			code = cv::COLOR_BayerRG2BGR;
-		}
-		else if (imageMsg->encoding == enc::BAYER_GBRG8 ||
-				imageMsg->encoding == enc::BAYER_GBRG16) {
-			code = cv::COLOR_BayerGR2BGR;
-		}
-		else if (imageMsg->encoding == enc::BAYER_GRBG8 ||
-				imageMsg->encoding == enc::BAYER_GRBG16) {
-			code = cv::COLOR_BayerGB2BGR;
-		}
-		cv::cvtColor(cv_ptr->image, image, code);
-	}
-	else
-		image = cv_ptr->image;
-
-	cv::Mat imageGray;
-	cv::cvtColor (image, imageGray, CV_BGR2GRAY);
-
+	cv::Mat imageGray = createImageFromRosMessage(imageMsg,
+		sysConfig["Camera.WorkingResolution.Width"],
+		sysConfig["Camera.WorkingResolution.Height"],
+		sysConfig["Camera.ROI.x0"],
+		sysConfig["Camera.ROI.y0"],
+		sysConfig["Camera.ROI.width"],
+		sysConfig["Camera.ROI.height"],
+		true
+	);
 	const double imageTime = imageMsg->header.stamp.toSec();
 
-	Frame cframe = SLAMSystem->getTracker()->createMonocularFrame(imageGray, imageTime);
+	Frame cframe = monocularFrame (imageGray, imageTime);
 
 	RecognizerOutput frameRecognizerOutput;
 	bool kfFound = relocalize(cframe, frameRecognizerOutput);
@@ -178,13 +230,8 @@ int main (int argc, char *argv[])
 	string mapPath, configFile;
 	nodeHandler.getParam ("map_file", mapPath);
 	nodeHandler.getParam ("config_file", configFile);
-	SLAMSystem = new ORB_SLAM2::System (
-		orbGenericVocabFile,
-		configFile,
-		ORB_SLAM2::System::MONOCULAR,
-		false,
-		mapPath,
-		ORB_SLAM2::System::LOCALIZATION);
+
+	SlamSystemPrepare(mapPath, configFile, sysConfig, &sourceMap, &keyVocab, &keyframeDB, &orbExtractor);
 
 	string imageTopic;
 	nodeHandler.getParam ("camera_topic", imageTopic);
