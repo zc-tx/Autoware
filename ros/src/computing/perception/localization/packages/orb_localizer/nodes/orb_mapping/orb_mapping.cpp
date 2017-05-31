@@ -226,6 +226,7 @@ int main (int argc, char *argv[])
 
 	bool doSaveKeyframeImages;
 	nodeHandler.getParam("save_keyframe_images", doSaveKeyframeImages);
+	printf ("Save KF images ? %s\n", doSaveKeyframeImages==true ? "yes" : "no");
 
 	ORB_SLAM2::System SLAM(orbVocabFile,
 		configFile,

@@ -30,6 +30,7 @@
 		<param name="configuration_file"          value="$(arg orb_config)" />
 		<param name="external_localization_topic" value="$(arg external_pose_topic)"   />
 		<param name="image_topic"                 value="$(arg image_topic)_hs" />
+		<param name="save_keyframe_images"        value="$(arg save_keyframe_images)" />
 	</node>
 
 </launch>
