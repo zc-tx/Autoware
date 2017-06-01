@@ -64,6 +64,7 @@ cv::Mat RenderOutput (Frame &frame, KeyFrame *kf)
 }
 
 
+// We eliminate full initialization of SLAM System
 // XXX: No exception handling here
 void SlamSystemPrepare (
 	const string &mapFilename,
@@ -229,18 +230,23 @@ int main (int argc, char *argv[])
 
 	string mapPath, configFile;
 	nodeHandler.getParam ("map_file", mapPath);
-	nodeHandler.getParam ("config_file", configFile);
+	nodeHandler.getParam ("configuration_file", configFile);
+//	cout << "Config: " << configFile << endl;
 
 	SlamSystemPrepare(mapPath, configFile, sysConfig, &sourceMap, &keyVocab, &keyframeDB, &orbExtractor);
 
 	string imageTopic;
-	nodeHandler.getParam ("camera_topic", imageTopic);
+	nodeHandler.getParam ("image_topic", imageTopic);
 	image_transport::TransportHints th ("raw");
 	image_transport::ImageTransport imageBuf (nodeHandler);
 	image_transport::Subscriber imageSub = imageBuf.subscribe (imageTopic, 1, &imageCallback, th);
 
+	cout << "Place Recognizer Ready\n";
+
 	ros::spin();
 
 	ros::shutdown();
+	delete(sourceMap);
+
 	return 0;
 }

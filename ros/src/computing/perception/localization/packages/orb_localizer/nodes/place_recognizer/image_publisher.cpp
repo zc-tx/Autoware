@@ -26,6 +26,7 @@
 #include <image_transport/image_transport.h>
 
 
+using namespace std;
 
 
 int main (int argc, char *argv[])
@@ -33,9 +34,17 @@ int main (int argc, char *argv[])
 	ros::init(argc, argv, "image_testpub");
 	ros::NodeHandle nh;
 	image_transport::ImageTransport it(nh);
-	image_transport::Publisher pub = it.advertise("/", 1);
+
+	std::string imgTopic (argv[2]);
+	image_transport::Publisher pub = it.advertise(imgTopic, 1);
 
 	cv::Mat cImage = cv::imread (argv[1], CV_LOAD_IMAGE_ANYCOLOR);
+	if (cImage.empty()) {
+		cerr << "Unable to open image\n";
+		exit (1);
+	}
+
+	cout << "Sending single image in " << imgTopic << endl;
 	sensor_msgs::ImagePtr msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", cImage).toImageMsg();
 	pub.publish (msg);
 
