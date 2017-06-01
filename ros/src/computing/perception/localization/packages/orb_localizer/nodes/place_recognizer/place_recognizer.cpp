@@ -32,11 +32,11 @@ namespace enc = sensor_msgs::image_encodings;
 
 
 
-struct RecognizerOutput {
-	cv::Mat framebuf;
-	geometry_msgs::PoseWithCovariance keyframePose;
-	double imageTimestamp;
-};
+//struct RecognizerOutput {
+//	KeyFrame *kf;
+//	geometry_msgs::PoseWithCovariance keyframePose;
+//	double imageTimestamp;
+//};
 
 
 const string orbGenericVocabFile = ORB_SLAM_VOCABULARY;
@@ -64,6 +64,7 @@ cv::Mat RenderOutput (Frame &frame, KeyFrame *kf)
 }
 
 
+// We eliminate full initialization of SLAM System
 // XXX: No exception handling here
 void SlamSystemPrepare (
 	const string &mapFilename,
@@ -137,7 +138,7 @@ monocularFrame (const cv::Mat& inputGray, const double timestamp)
 }
 
 
-bool relocalize (Frame &frame, RecognizerOutput &output)
+KeyFrame* relocalize (Frame &frame)
 {
 //	KeyFrameDatabase *kfDB = SLAMSystem->getKeyFrameDB();
 	frame.ComputeBoW();
@@ -146,7 +147,7 @@ bool relocalize (Frame &frame, RecognizerOutput &output)
 		= keyframeDB->DetectRelocalizationCandidatesSimple(&frame);
 
 	if (vpCandidateKFs.empty())
-		return false;
+		return NULL;
 
 	vector<bool> vcDiscarded;
 	const int nKFs = vpCandidateKFs.size();
@@ -171,7 +172,6 @@ bool relocalize (Frame &frame, RecognizerOutput &output)
             int nmatches = matcher.SearchByBoW (pKF, frame, vvpMapPointMatches[i]);
             if(nmatches<15)
             {
-            	cerr << "KF discarded: #" << pKF->mnId << endl;
             	vcDiscarded[i] = true;
                 continue;
             }
@@ -185,6 +185,14 @@ bool relocalize (Frame &frame, RecognizerOutput &output)
         }
     }
 
+    cout << "#Candidates: " << nCandidates << endl;
+
+    // Alternatively perform some iterations of P4P RANSAC
+    // Until we found a camera pose supported by enough inliers
+    bool bMatch = false;
+    ORBmatcher matcher2(0.9,true);
+
+
 //	tf::Transform keyPose = KeyFramePoseToTf(firstSel);
 //	output.imageTimestamp = frame.mTimeStamp;
 //	output.keyframePose.pose.position.x = keyPose.getOrigin().x();
@@ -195,13 +203,13 @@ bool relocalize (Frame &frame, RecognizerOutput &output)
 //	output.keyframePose.pose.orientation.z = keyPose.getRotation().z();
 //	output.keyframePose.pose.orientation.w = keyPose.getRotation().w();
 
-	return true;
+//	return true;
 }
 
 
 void imageCallback (const sensor_msgs::ImageConstPtr &imageMsg)
 {
-	cout << "Imaged\n";
+//	cout << "Imaged\n";
 
 	cv::Mat imageGray = createImageFromRosMessage(imageMsg,
 		sysConfig["Camera.WorkingResolution.Width"],
@@ -216,8 +224,12 @@ void imageCallback (const sensor_msgs::ImageConstPtr &imageMsg)
 
 	Frame cframe = monocularFrame (imageGray, imageTime);
 
-	RecognizerOutput frameRecognizerOutput;
-	bool kfFound = relocalize(cframe, frameRecognizerOutput);
+//	RecognizerOutput frameRecognizerOutput;
+	KeyFrame *kfFound = relocalize(cframe);
+	if (kfFound==NULL)
+		cout << "No KF\n";
+	else
+		cout << "KF: " << kfFound->mnId << endl;
 }
 
 
@@ -229,18 +241,23 @@ int main (int argc, char *argv[])
 
 	string mapPath, configFile;
 	nodeHandler.getParam ("map_file", mapPath);
-	nodeHandler.getParam ("config_file", configFile);
+	nodeHandler.getParam ("configuration_file", configFile);
+//	cout << "Config: " << configFile << endl;
 
 	SlamSystemPrepare(mapPath, configFile, sysConfig, &sourceMap, &keyVocab, &keyframeDB, &orbExtractor);
 
 	string imageTopic;
-	nodeHandler.getParam ("camera_topic", imageTopic);
+	nodeHandler.getParam ("image_topic", imageTopic);
 	image_transport::TransportHints th ("raw");
 	image_transport::ImageTransport imageBuf (nodeHandler);
 	image_transport::Subscriber imageSub = imageBuf.subscribe (imageTopic, 1, &imageCallback, th);
 
+	cout << "Place Recognizer Ready\n";
+
 	ros::spin();
 
 	ros::shutdown();
+	delete(sourceMap);
+
 	return 0;
 }
