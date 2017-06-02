@@ -14,6 +14,7 @@
 #include <sensor_msgs/image_encodings.h>
 #include <cv_bridge/cv_bridge.h>
 #include <image_transport/image_transport.h>
+#include <boost/filesystem.hpp>
 #include <tf/tf.h>
 #include "System.h"
 #include "Map.h"
@@ -55,12 +56,23 @@ cv::Mat CameraParam;
 // Distortion Coefficients
 cv::Mat DistCoef;
 
+// ROS Launch Parameters
+string
+	mapPath
+		("/data/Meidai2017/logging/2016-12-26-13-21-10/map/orbx.map"),
+	configFile
+		("/data/Meidai2017/ros/etc/orb-slam2.yaml"),
+	imageTopic
+		("/camera1/image_raw");
 
-cv::Mat RenderOutput (Frame &frame, KeyFrame *kf)
+
+string kfImageDir;
+void PostRecognition (Frame &frame, KeyFrame *kf)
 {
 	cv::Mat imgOut;
-
-	return imgOut;
+	string imagePath = kfImageDir + "/" + std::to_string(kf->mnId) + ".jpg";
+	imgOut = cv::imread(imagePath);
+//	return imgOut;
 }
 
 
@@ -154,13 +166,13 @@ KeyFrame* relocalize (Frame &frame)
 	vcDiscarded.resize(nKFs);
 	ORBmatcher matcher (0.75, true);
 
-    vector<vector<MapPoint*> > vvpMapPointMatches;
-    vvpMapPointMatches.resize(nKFs);
+	vector<vector<MapPoint*> > vvpMapPointMatches;
+	vvpMapPointMatches.resize(nKFs);
 
-    vector<PnPsolver*> vpPnPsolvers;
-    vpPnPsolvers.resize(nKFs);
+	vector<PnPsolver*> vpPnPsolvers;
+	vpPnPsolvers.resize(nKFs);
 
-    int nCandidates=0;
+	int nCandidates=0;
 
     for(int i=0; i<nKFs; i++)
     {
@@ -177,6 +189,7 @@ KeyFrame* relocalize (Frame &frame)
             }
             else
             {
+            	return pKF;
                 PnPsolver* pSolver = new PnPsolver (frame, vvpMapPointMatches[i]);
                 pSolver->SetRansacParameters(0.99,10,300,4,0.5,5.991);
                 vpPnPsolvers[i] = pSolver;
@@ -239,15 +252,15 @@ int main (int argc, char *argv[])
 	ros::start();
 	ros::NodeHandle nodeHandler ("~");
 
-	string mapPath, configFile;
-	nodeHandler.getParam ("map_file", mapPath);
-	nodeHandler.getParam ("configuration_file", configFile);
+//	nodeHandler.getParam ("map_file", mapPath);
+//	nodeHandler.getParam ("configuration_file", configFile);
 //	cout << "Config: " << configFile << endl;
+//	nodeHandler.getParam ("image_topic", imageTopic);
 
 	SlamSystemPrepare(mapPath, configFile, sysConfig, &sourceMap, &keyVocab, &keyframeDB, &orbExtractor);
 
-	string imageTopic;
-	nodeHandler.getParam ("image_topic", imageTopic);
+	kfImageDir = boost::filesystem::basename(mapPath) + "/keyframe_images";
+
 	image_transport::TransportHints th ("raw");
 	image_transport::ImageTransport imageBuf (nodeHandler);
 	image_transport::Subscriber imageSub = imageBuf.subscribe (imageTopic, 1, &imageCallback, th);
