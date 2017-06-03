@@ -46,7 +46,17 @@ int main (int argc, char *argv[])
 
 	cout << "Sending single image in " << imgTopic << endl;
 	sensor_msgs::ImagePtr msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", cImage).toImageMsg();
-	pub.publish (msg);
+
+	ros::Rate lp (5);
+	while (nh.ok()) {
+		pub.publish (msg);
+		ros::spinOnce();
+		lp.sleep();
+//		break;
+	}
+//	pub.publish(msg);
+//	ros::spinOnce();
+//	ros::shutdown();
 
 	return 0;
 }
