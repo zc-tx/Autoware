@@ -306,8 +306,6 @@ KeyFrame* relocalize (Frame &frame)
 		}
 	}
 
-
-
 	return (bMatch==true ? kfRef : NULL);
 }
 
@@ -341,9 +339,10 @@ void imageCallback (const sensor_msgs::ImageConstPtr &imageMsg)
 			recognizerImageDebug.publish (msg);
 
 			// Publish KF pose
-			tf::Transform keyPose = KeyFramePoseToTf(kfFound);
+			tf::Transform keyPose = getKeyFrameExtPose(kfFound);
 			geometry_msgs::PoseStamped kfPose;
 			kfPose.header.stamp = imageMsg->header.stamp;
+			kfPose.header.frame_id = "world";
 			kfPose.pose.position.x = keyPose.getOrigin().x();
 			kfPose.pose.position.y = keyPose.getOrigin().y();
 			kfPose.pose.position.z = keyPose.getOrigin().z();
@@ -355,7 +354,7 @@ void imageCallback (const sensor_msgs::ImageConstPtr &imageMsg)
 
 		}
 	} catch (exception &e) {
-		cout << "Error in relocalization: " << e.what() << endl;
+		cout << "Error in recognizer: " << e.what() << endl;
 	}
 }
 
@@ -366,10 +365,10 @@ int main (int argc, char *argv[])
 	ros::start();
 	ros::NodeHandle nodeHandler ("~");
 
-//	nodeHandler.getParam ("map_file", mapPath);
-//	nodeHandler.getParam ("configuration_file", configFile);
-//	cout << "Config: " << configFile << endl;
-//	nodeHandler.getParam ("image_topic", imageTopic);
+	nodeHandler.getParam ("map_file", mapPath);
+	nodeHandler.getParam ("configuration_file", configFile);
+	cout << "Config: " << configFile << endl;
+	nodeHandler.getParam ("image_topic", imageTopic);
 
 	SlamSystemPrepare(mapPath, configFile, sysConfig, &sourceMap, &keyVocab, &keyframeDB, &orbExtractor);
 
