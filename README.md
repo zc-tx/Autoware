@@ -89,6 +89,7 @@ CV based detectors RCNN and SSD nodes are not automatically built.
 To build these nodes please follow the respective node's README
 [SSD](ros/src/computing/perception/detection/packages/cv_tracker/nodes/ssd/README.md)
 [RCNN](ros/src/computing/perception/detection/lib/image/librcnn/README.md)
+[Yolo2](ros/src/computing/perception/detection/packages/cv_tracker/nodes/yolo2/README.md)
 
 
 ## How to Start
@@ -154,7 +155,7 @@ More details [here](http://nvie.com/posts/a-successful-git-branching-model/)
 ## Instruction Videos
 
 ### Quick Start
-[![Quick Start](http://img.youtube.com/vi/m-4U84K7lvg/0.jpg)](https://www.youtube.com/watch?v=m-4U84K7lvg)
+[![Quick Start](http://img.youtube.com/vi/m-4U84K7lvg/mqdefault.jpg)](https://www.youtube.com/watch?v=m-4U84K7lvg)
 
 ### Loading Map Data
 [![Loading Map Data](http://img.youtube.com/vi/EJa4PHnjdRY/mqdefault.jpg)](https://www.youtube.com/watch?v=EJa4PHnjdRY)
@@ -170,6 +171,9 @@ More details [here](http://nvie.com/posts/a-successful-git-branching-model/)
 
 ### Detection with SSD
 [![SSD](http://img.youtube.com/vi/EjamMJjkjBA/mqdefault.jpg)](https://youtu.be/EjamMJjkjBA)
+
+### Detection with Yolo2
+[![Yolo2](http://img.youtube.com/vi/gG_ojWOmDO0/mqdefault.jpg)](https://youtu.be/gG_ojWOmDO0)
 
 ### Detection with DPM
 [![DPM](http://img.youtube.com/vi/P_BFQNbudlg/mqdefault.jpg)](https://youtu.be/P_BFQNbudlg)
@@ -191,6 +195,12 @@ More details [here](http://nvie.com/posts/a-successful-git-branching-model/)
 
 ### Calibration Toolkit
 [![Calibration Toolkit](http://img.youtube.com/vi/pfBmfgHf6zg/mqdefault.jpg)](https://www.youtube.com/watch?v=pfBmfgHf6zg)
+
+### Data Processor for Bag File
+[![Data Processor](http://img.youtube.com/vi/M38Obmy-3Ko/mqdefault.jpg)](https://youtu.be/M38Obmy-3Ko)
+
+### Ftrace
+[![Ftrace](http://img.youtube.com/vi/RoIqKgerDUw/mqdefault.jpg)](https://youtu.be/RoIqKgerDUw)
 
 ## Sample Data
 
