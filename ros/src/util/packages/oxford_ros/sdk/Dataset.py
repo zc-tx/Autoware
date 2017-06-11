@@ -6,9 +6,9 @@ from datetime import datetime as dt
 
 class Dataset:
     
-    poseModeGps = 1
-    poseModeIns = 2
-    poseModeVO  = 3
+#     poseModeGps = 1
+#     poseModeIns = 2
+#     poseModeVO  = 3
     
     def __init__ (self, datadir):
         if (not os.path.isdir(datadir)):
@@ -29,11 +29,26 @@ class Dataset:
         return tslist
     
     # Returns file names
-    def getStereo (self, center=True, left=True, right=True):
+    def getStereo (self):
         timestamps = self.getTimestamp('stereo', raw=True)
+        fileList = []
+        ctrname = self.path + '/stereo/centre'
+        lftname = self.path + '/stereo/left'
+        rhtname = self.path + '/stereo/right'
+        for ts in timestamps :
+            rcatch = {
+                    'center' : ctrname + '/' + ts + '.png',
+                    'left'   : lftname + '/' + ts + '.png',
+                    'right'  : rhtname + '/' + ts + '.png'
+                }
+            fileList.append(rcatch)
+        return fileList
     
     def getMainLidar (self):
         pass
     
-    def getPoses (self, mode):
+    def getGps (self):
+        pass
+    
+    def getIns (self):
         pass
