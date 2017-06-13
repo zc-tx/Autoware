@@ -15,7 +15,7 @@
 import re
 import os
 import numpy as np
-#import scipy.interpolate as interp
+import scipy.interpolate as interp
 from scipy.ndimage import map_coordinates
 
 
