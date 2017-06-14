@@ -37,7 +37,7 @@ class CameraModel:
     cam_stereo_right = 2
     cam_stereo_left = 3
 
-    def __init__(self, models_dir, images_dir):
+    def __init__(self, models_dir, camera_type):
         """Loads a camera model from disk.
 
         Args:
@@ -52,8 +52,8 @@ class CameraModel:
         self.G_camera_image = None
         self.bilinear_lut = None
 
-        self.__load_intrinsics(models_dir, images_dir)
-        self.__load_lut(models_dir, images_dir)
+        self.__load_intrinsics(models_dir, camera_type)
+        self.__load_lut(models_dir, camera_type)
 
     def project(self, xyz, image_size):
         """Projects a pointcloud into the camera using a pinhole camera model.
@@ -114,23 +114,19 @@ class CameraModel:
 
         return undistorted.astype(image.dtype)
 
-    def __get_model_name(self, images_dir):
-        self.camera = re.search('(stereo|mono_(left|right|rear))', images_dir).group(0)
-        if self.camera == 'stereo':
-            self.camera_sensor = re.search('(left|centre|right)', images_dir).group(0)
-            if self.camera_sensor == 'left':
-                return 'stereo_wide_left'
-            elif self.camera_sensor == 'right':
-                return 'stereo_wide_right'
-            elif self.camera_sensor == 'centre':
-                return 'stereo_narrow_left'
-            else:
-                raise RuntimeError('Unknown camera model for given directory: ' + images_dir)
+    @staticmethod
+    def __get_model_name(camera_type):
+        if camera_type == CameraModel.cam_stereo_center:
+            return 'stereo_narrow_left'
+        elif camera_type == CameraModel.cam_stereo_left:
+            return 'stereo_wide_left'
+        elif camera_type == CameraModel.cam_stereo_right:
+            return 'stereo_wide_right'
         else:
-            return self.camera
+            raise RuntimeError("Unknown camera type")
 
-    def __load_intrinsics(self, models_dir, images_dir):
-        model_name = self.__get_model_name(images_dir)
+    def __load_intrinsics(self, models_dir, camera_type):
+        model_name = CameraModel.__get_model_name(camera_type)
         intrinsics_path = os.path.join(models_dir, model_name + '.txt')
 
         with open(intrinsics_path) as intrinsics_file:
@@ -143,8 +139,8 @@ class CameraModel:
                 G_camera_image.append([float(x) for x in line.split()])
             self.G_camera_image = np.array(G_camera_image)
 
-    def __load_lut(self, models_dir, images_dir):
-        model_name = self.__get_model_name(images_dir)
+    def __load_lut(self, models_dir, camera_type):
+        model_name = CameraModel.__get_model_name(camera_type)
         lut_path = os.path.join(models_dir, model_name + '_distortion_lut.bin')
 
         lut = np.fromfile(lut_path, np.double)
