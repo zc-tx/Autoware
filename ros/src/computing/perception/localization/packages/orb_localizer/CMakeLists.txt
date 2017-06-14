@@ -18,7 +18,18 @@ LIST(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fPIC")
 
 find_package (Boost REQUIRED COMPONENTS system serialization python)
+
 find_package (OpenCV REQUIRED)
+if (NOT (
+	(${OpenCV_VERSION_MAJOR} EQUAL 2) 
+	AND 
+	(${OpenCV_VERSION_MINOR} EQUAL 4) 
+	))
+	message (FATAL_ERROR "Incompatible OpenCV version; must be 2.4.x. Found " ${OpenCV_VERSION})
+else()
+	message ("OpenCV Version: " ${OpenCV_VERSION})
+endif()
+
 find_package (OpenGL REQUIRED)
 find_package (GLEW REQUIRED)
 find_package (BLAS REQUIRED)
