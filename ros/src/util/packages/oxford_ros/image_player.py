@@ -1,5 +1,5 @@
 
-
+import sys
 import rospy
 import cv2
 import cv_bridge
@@ -9,8 +9,7 @@ import numpy as np
 from sensor_msgs.msg import Image as ImageMsg
 from rosgraph_msgs.msg import Clock
 
-from sdk.Dataset import Dataset
-
+import sdk
 
 
 if __name__ == '__main__' :
@@ -18,9 +17,9 @@ if __name__ == '__main__' :
     rospy.init_node ('oxford_image_player', anonymous=True)
     cvbridge = cv_bridge.CvBridge()
     publisher = rospy.Publisher ('stereo_center', ImageMsg, queue_size=1)
-    v = cv2.__version__
     
-    testdata = Dataset('/media/sujiwo/Meidai2017 JWX/robotcar-dataset/2014-05-06-12-54-54')
+    # XXX: Need to get dataset directory from elsewhere
+    testdata = sdk.Dataset(sys.argv[1])
     cam_ts = testdata.getStereo ()
     
     for captures in cam_ts :

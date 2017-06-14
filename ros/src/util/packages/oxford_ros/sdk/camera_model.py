@@ -32,6 +32,10 @@ class CameraModel:
             image to pixels in the distorted image
 
     """
+    
+    cam_stereo_center = 1
+    cam_stereo_right = 2
+    cam_stereo_left = 3
 
     def __init__(self, models_dir, images_dir):
         """Loads a camera model from disk.
