@@ -19,12 +19,9 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fPIC")
 
 find_package (Boost REQUIRED COMPONENTS system serialization python)
 
-find_package (OpenCV REQUIRED)
-if (NOT (
-	(${OpenCV_VERSION_MAJOR} EQUAL 2) 
-	AND 
-	(${OpenCV_VERSION_MINOR} EQUAL 4) 
-	))
+# OpenCV 3.x is problematic; must reject
+find_package (OpenCV 2.4)
+if (NOT ((${OpenCV_VERSION_MAJOR} EQUAL 2) AND (${OpenCV_VERSION_MINOR} EQUAL 4) ))
 	message (FATAL_ERROR "Incompatible OpenCV version; must be 2.4.x. Found " ${OpenCV_VERSION})
 else()
 	message ("OpenCV Version: " ${OpenCV_VERSION})
